@@ -47,13 +47,12 @@ class Choice
 
   def <=>(other_choice)
     if (self.ties? other_choice)
-      result = 0
+      0
     elsif self > other_choice
-      result = 1
+      1
     else
-      result = -1
+      -1
     end
-    result
   end
 
   def to_s
@@ -151,13 +150,13 @@ class Game
   def set_human_players(num = 1)
     num.times do |n|
       puts "What is the player#{n+1}'s name?"
-      players << HumanPlayer.new(gets.chomp.strip)
+      players << Human.new(gets.chomp.strip)
     end
   end
 
   def set_computer_players(num = 1)
     num.times do |i|
-      players << ComputerPlayer.new("Computer#{i+1}")
+      players << Computer.new("Computer#{i+1}")
     end
   end
 
@@ -179,7 +178,7 @@ class Game
 
   def decide_winners(players)
     if players.size > 2
-      all_choice = players.map{|p| p.choice}.flatten!
+      all_choice = players.map{|p| p.choice}.flatten
       result = nil if all_choice.size == 1 || all_choice >= 3
       if all_choice[0] > all_choice[1]
         result = players.select {|player| player.choice == all_choice[0]}
@@ -215,7 +214,7 @@ class Player
   end
 end
 
-class ComputerPlayer < Player
+class Computer < Player
   def make_choice!
     puts "Computer: Wait a second..."
     sleep(1)
@@ -223,7 +222,7 @@ class ComputerPlayer < Player
   end
 end
 
-class HumanPlayer < Player
+class Human < Player
   def make_choice!
     player_choice = nil
     loop do
