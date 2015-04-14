@@ -206,7 +206,6 @@ class TicTacToeBoard
     empty_slots_nums.size == 0
   end
 
-
   def empty_slots_nums
     Array(0..8).select{|i| slots[i].empty?}
   end
@@ -222,7 +221,6 @@ class TicTacToeBoard
 end
 
 class Game
-
   def initialize
     @players = []
     @board = TicTacToeBoard.new
@@ -239,9 +237,6 @@ class Game
     begin
       initialize
       set_players
-
-      @current_player = @players[0]
-      @idle_player = @players[1]
 
       begin
         system "clear"
@@ -299,6 +294,8 @@ class Game
 
     player1 == '1' ? @players << Human.new('o','player1') : @players << Computer.new('o','player1')
     player2 == '1' ? @players << Human.new('x','player2') : @players << Computer.new('x','player2')
+    @current_player = @players[0]
+    @idle_player = @players[1]
     nil
   end
 end
