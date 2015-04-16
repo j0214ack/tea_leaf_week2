@@ -1,46 +1,47 @@
 require 'pry'
 
 class Player
-  attr_accessor :marker, :name
+  attr_accessor :marker, :name, :type
 
-  def initialize(marker,name)
+  def initialize(marker, name)
     @marker = marker
     @name = name
+    @type = self.class.to_s.downcase
   end
 
-  def select_a_slot(board,opponent)
+  def select_a_slot(board, opponent)
     raise "Method not defined"
   end
 
   def to_s
-    @name
+    name
   end
 end
 
 class Human < Player
-  def select_a_slot(board,opponent)
+  def select_a_slot(board)
     begin
-      puts "Hello, #{@name}! Your marker is #{@marker}"
+      puts "Hello, #{name}! Your marker is #{marker}"
       puts "Please mark an empty slot#{board.empty_slots_nums.map{|n| n+1}.inspect}: "
       player_choice = gets.chomp
-    end until valid_choice?(player_choice,board)
+    end until valid_choice?(player_choice, board)
     player_choice.to_i - 1
   end
 
   private
 
-  def valid_choice?(choice,board)
-    return false if choice.match(/[1-9]/).nil?
+  def valid_choice?(choice, board)
+    return false unless choice.match(/[1-9]/)
     slot_num = choice.to_i - 1
-    return board.empty_slots_nums.include? slot_num
+    board.empty_slots_nums.include? slot_num
   end
 end
 
 class Computer < Player
-  def select_a_slot(board,opponent)
+  def select_a_slot(board, opponent)
     priorities = {}
     board.empty_slots_nums.each do |slot_num|
-      priorities[slot_num] = assign_priority(slot_num,board,opponent)
+      priorities[slot_num] = assign_priority(slot_num, board, opponent)
     end
     puts "#{name} is thinking..."
     sleep(2)
@@ -49,7 +50,7 @@ class Computer < Player
 
   private
 
-  def assign_priority(slot_num,board,opponent)
+  def assign_priority(slot_num, board, opponent)
     weight = 0
     all_rows = board.all_rows
     rows_have_the_slot = all_rows.select{|row| row.include? slot_num}.map{|row| Row.new(row, board)}
@@ -102,7 +103,7 @@ class Computer < Player
 end
 
 class Slot
-  attr_reader :value
+  attr_accessor :value
 
   def initialize(value = ' ')
     @value = value
@@ -125,8 +126,7 @@ class Slot
   end
 
   def fill!(marker)
-    @value = marker
-    nil
+    self.value = marker
   end
 
   def marker
@@ -141,7 +141,7 @@ end
 class Row
   attr_accessor :slots
 
-  def initialize(slot_nums,board)
+  def initialize(slot_nums, board)
     @slots = slot_nums.map{|position| board.slots[position]}
   end
 
@@ -214,13 +214,13 @@ class TicTacToeBoard
     slots[slot_num].empty?
   end
 
-  def fill_slot!(slot_num,marker)
+  def fill_slot!(slot_num, marker)
     slots[slot_num].fill!(marker)
-    nil
   end
 end
 
 class Game
+  attr_accessor :players, :board, :current_player, :idle_player, :winner
   def initialize
     @players = []
     @board = TicTacToeBoard.new
@@ -235,68 +235,76 @@ class Game
     puts
 
     begin
-      initialize
       set_players
 
       begin
         system "clear"
-        @board.draw
-        player_choice = @current_player.select_a_slot(@board,@idle_player)
-        @board.fill_slot!(player_choice, @current_player.marker)
-        check_winner(player_choice, @current_player)
+        board.draw
+        if current_player.type == "computer"
+          player_choice = current_player.select_a_slot(board, idle_player)
+        else
+          player_choice = current_player.select_a_slot(board)
+        end
+        board.fill_slot!(player_choice, current_player.marker)
+        check_winner(player_choice, current_player)
         switch_turn
         # Todo here
-      end until @winner || @board.all_slot_marked?
+      end until winner || board.all_slot_marked?
 
       system "clear"
-      @board.draw
+      board.draw
       show_result
 
       puts "Play again?(y/n)"
-    end while gets.chomp.downcase == 'y'
+    end while gets.chomp.downcase == 'y' && reset_game
   end
 
   private
 
+  def reset_game
+    initialize
+    true
+  end
+
   def show_result
-    if @winner
-      puts "#{@winner} won!"
+    if winner
+      puts "#{winner} won!"
     else
       puts "It's a tie"
     end
   end
 
   def switch_turn
-    temp = @current_player
-    @current_player = @idle_player
-    @idle_player = temp
-    nil
+    temp = current_player
+    self.current_player = idle_player
+    self.idle_player = temp
   end
 
   def check_winner(slot_num, player)
-    @board.all_rows.select{|row| row.include? slot_num}.each do |row|
-      @winner = player if Row.new(row, @board).three_in_a_row == player.marker 
+    board.all_rows.select{|row| row.include? slot_num}.each do |row|
+      self.winner = player if Row.new(row, board).three_in_a_row == player.marker 
     end
-    nil
+  end
+
+  def set_player(player_num, marker)
+    begin
+      puts "Who is player#{player_num} ?"
+      puts "1) Human 2) Computer"
+      player = gets.chomp
+    end until %w(1 2).include? player
+    if player == '1'
+      players << Human.new(marker,"player#{player_num}")
+    else
+      players << Computer.new(marker,"player#{player_num}")
+    end
   end
 
   def set_players
-    begin
-      puts "Who is player1 ?"
-      puts "1) Human 2) Computer"
-      player1 = gets.chomp
-    end until %w(1 2)
-    begin
-      puts "Who is player2 ?"
-      puts "1) Human 2) Computer"
-      player2 = gets.chomp
-    end until %w(1 2)
+    set_player(1,'o')
+    set_player(2,'x')
 
-    player1 == '1' ? @players << Human.new('o','player1') : @players << Computer.new('o','player1')
-    player2 == '1' ? @players << Human.new('x','player2') : @players << Computer.new('x','player2')
-    @current_player = @players[0]
-    @idle_player = @players[1]
-    nil
+    self.current_player = players[0]
+    self.idle_player = players[1]
   end
 end
 
