@@ -1,0 +1,59 @@
+Dealer
+  NOUNS
+    hand (which is bunch of cards)
+  VERBS
+    Deal a card from the deck to himself or one of the players
+    Hit
+    Stand
+    Decide hit or stand
+    say something
+
+Card
+  NOUNS
+    suit and value
+  VERBS
+    display himself
+
+Deck
+  NOUNS
+    has several sets of cards
+  VERBS
+    Being dealt from
+
+Player
+  NOUNS
+    hand (which is bunch of cards, each either hidden or shown)
+    money
+    bets on the table
+  VERBS
+    hit
+    stand
+    decide hit or stand
+    add bets
+    win bets
+
+Hand
+  NOUNS
+    card
+  VERS
+    count value
+    show hand
+    being added a card
+
+GameTable
+  NOUNS
+    has a dealer
+    has players
+    has a deck
+  VERBS
+    new round
+    join a player
+
+Game
+  NOUNS
+    has a gametable
+  VERBS
+    set a gametable
+    start a gametable
+
+  
