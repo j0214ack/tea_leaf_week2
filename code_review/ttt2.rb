@@ -67,7 +67,7 @@ class Player
 
   def win?
     Game::WINNING_LINES.each do |positions|
-      return true if (positions - grids_taken_over).empty?
+      return true if (positions - grids_taken_over).empty? # smart!
     end
 
     return false

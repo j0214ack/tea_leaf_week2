@@ -21,6 +21,9 @@ class Square
 end
 
 class Marker
+  #                  this is kind of confusing
+  #                  it is actually
+  #                  :O => "O", :X => "X"
   MARK = {empty:"",O:"O",X:"X"}.freeze
   attr_accessor :mark
 
@@ -79,6 +82,7 @@ class Board
     puts "------------------------------------"        
 
     clear_squares     
+    # should be just, unless
     while !is_game_over?                 
       @players.each do |player|                 
         display_board 
