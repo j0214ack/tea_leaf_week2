@@ -63,10 +63,6 @@ class Player
     @leaving = false
   end
 
-  def type
-    "player"
-  end
-
   def hit_or_stand
     if total_points == 21
       puts "You have a blackjack!"
@@ -108,10 +104,6 @@ class Dealer
 
   def initialize
     @hand = []
-  end
-
-  def type
-    "dealer"
   end
 
   def hit_or_stand
@@ -274,7 +266,7 @@ class GameTable
   end
 
   def take_turn(player)
-    hide_first_card = (player.type == "dealer" ? false : true)
+    hide_first_card = (player.is_a?(Dealer) ? false : true)
     loop do
       draw_table(hide_first_card)
       choice = player.hit_or_stand
@@ -282,7 +274,7 @@ class GameTable
         player.add_a_card(deck.deal_a_card)
         draw_table(hide_first_card)
         if player.busted?
-          if player.type == "dealer"
+          if player.is_a?(Dealer)
             dealer.say "Oh no! I'm busted!!"
           else
             dealer.say "You are busted!"
