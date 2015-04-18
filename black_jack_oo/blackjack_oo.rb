@@ -1,6 +1,14 @@
 require 'pry'
 
+module Pauseable
+  def pause
+    puts "(press enter to continue...)"
+    gets
+  end
+end
+
 class Player
+  include Pauseable
   attr_accessor :hand, :money, :bets, :name, :leaving
   
   def initialize
@@ -20,8 +28,13 @@ class Player
   end
 
   def hit_or_stand
+    if hand.total_points == 21
+      puts "You have a blackjack!"
+      pause
+      return 's'
+    end
     begin
-      puts "Do you wish to 1) hit or, 2) stand?"
+      puts "#{name}, do you wish to 1) hit or, 2) stand?"
       choice = gets.chomp
     end until %w(1 2).include? choice
     choice == '1' ? 'h' : 's'
@@ -32,7 +45,7 @@ class Player
     self.bets = amount
   end
 
-  def return_bet
+  def push
     puts "#{name} made a push with dealer. #{name} gets #{bets} dollars back."
     self.money += bets
     self.bets = 0
@@ -42,17 +55,32 @@ class Player
     puts "#{name} won! #{name} gets #{bets * 2} dollars back."
     self.money += bets * 2
   end
+
+  def lose
+    puts "#{name} lose! #{name} can't get his #{bets} dollars back."
+  end
 end
 
 class Dealer
+  include Pauseable
   attr_accessor :hand
 
-  def initialzie
+  def initialize
     @hand = Hand.new
   end
 
   def hit_or_stand
-    hand.value < 17 ? 'h' : 's'
+    say "Let me think....."
+    pause
+    if hand.total_points < 17
+      say "I want to hit!"
+      pause
+      'h'
+    else
+      say "I want to stand"
+      pause
+      's'
+    end
   end
 
   def say(sentence)
@@ -126,7 +154,7 @@ class Hand
     self.cards << card
   end
 
-  def show(hide_fisrt_card = true)
+  def show(hide_fisrt_card = false)
     cards_strings = cards.map{ |card| card.to_s }
     cards_strings[0] = "🂠 ??" if hide_fisrt_card
     cards_strings.join(" | ")
@@ -144,12 +172,16 @@ class Hand
     cards.size == 2 && total_points == 21 
   end
 
+  def busted?
+    total_points > 21
+  end
+
   def total_points
     result = 0
     aces = 0
     cards.each do |card|
-      result += card.points
-      aces += 1 if card.points = 1
+      result += card.to_points
+      aces += 1 if card.to_points == 1
     end
     result += 10 if (aces != 0 && (result + 10 <= 21))
     result 
@@ -161,6 +193,7 @@ class Hand
 end
 
 class GameTable
+  include Pauseable
   attr_accessor :dealer, :players, :deck
   MAXIMUM_PLAYERS = 6
 
@@ -197,7 +230,7 @@ class GameTable
       dealer.say "All players are gone."
       dealer.say "Do you want to start a new table? (y/n)"
       if gets.chomp.downcase == 'y'
-        reset_table
+        reset_table!
       else
         break
       end
@@ -205,14 +238,18 @@ class GameTable
   end
 
   def start_a_round
-    binding.pry
+    #binding.pry
+    system "clear"
+    dealer.say "Let the round start!"
     dealer.hand.clear
     players.each do |player| 
       player.hand.clear
-      dealer.say "#{player.name}, how much do you want to bet? Bet 0 to leave this table."
+      dealer.say "#{player.name}, how much do you want to bet?"
+      dealer.say "You have $#{player.money}."
+      dealer.say "Bet 0 to leave this table."
       begin
         amount = gets.chomp
-      end until amount.match /^\d+$/ && amount.to_i.between?(0, money)
+      end until amount.match(/^\d+$/)&& amount.to_i.between?(0, player.money)
       if amount.to_i == 0
         player.leaving = true
       else
@@ -221,7 +258,7 @@ class GameTable
     end
     players.reject!{ |player| player.leaving }
 
-    if players.size > 0
+    unless players.empty?
       2.times do
         dealer.hand << deck.deal_a_card
         players.each{ |player| player.hand << deck.deal_a_card }
@@ -229,74 +266,111 @@ class GameTable
 
       draw_table
 
-      someone_has_blackjack = false
       if dealer.hand.blackjack?
-        players.each { |player| player.return_bet if player.hand.blackjack? }
-        someone_has_blackjack = true
-      else
-        players.each do |player|
-          player.win if player.blackjack? 
-          someone_has_blackjack = true
-        end
-      end
-
-      if someone_has_blackjack
         draw_table(false)
-        dealer.say "Some one has black jack!"
+        dealer.say "The dealer has black jack!"
       else
         # players' turn
         players.each do |player|
-          until make_choice(player) == 's' || player.hand.busted? 
+          loop do
             draw_table
+            choice = player.hit_or_stand
+            if choice == 'h'
+              player.hand << deck.deal_a_card
+              draw_table
+              if player.hand.busted?
+                dealer.say "You are busted!"
+                pause
+                break
+              end
+            else # choice == 's'
+              break
+            end
           end
         end # players.each
 
         # dealer's turn
         if players.reject{ |player| player.hand.busted? }.empty?
+          draw_table(false)
           dealer.say "Everyone is busted! Well done, let's go to next round."
         else
-          until make_choice(dealer) == 's' || dealer.hand.busted?
+          loop do
             draw_table(false)
+            choice = dealer.hit_or_stand
+            if choice == 'h'
+              dealer.hand << deck.deal_a_card
+              draw_table(false)
+              if dealer.hand.busted?
+                dealer.say "Oh no! I'm busted!!"
+                pause
+                break
+              end
+            else # choice == 's'
+              break 
+            end
           end
-        end
+        end 
+      end # if someone_has_blackjack
+      round_result
+    end # unless players.empty?
+  end
+
+  def round_result
+    draw_table(false)
+    if dealer.hand.blackjack?
+      players.each do |player|
+        player.hand.blackjack? ? player.push : player.lose
       end
 
-      players.reject{ |player| player.hand.busted? }.each do
+    else
+      players.reject do |player|
+        if player.hand.busted? 
+          player.lose
+          true
+        else
+          false
+        end
+      end.each do |player|
         if dealer.hand.busted?
           player.win
         else
-          player.win if dealer.hand.total_points < player.hand.total_points
-          player.return_bet if dealer.hand.total_points == player.hand.total_points
+          case dealer.hand.total_points <=> player.hand.total_points
+          when 1
+            player.lose
+          when 0
+            player.push
+          when -1
+            player.win
+          end
         end
-      end
+      end # player.each
+    end # if dealer.hand.blackjack?
 
-      players.reject! do |player|
-        bankrupt = (player.money == 0)
-        dealer.say "Sorry, #{player.name}. You don't have money anymore. Get out of here!" if bankrupt
-        bankrupt
-      end
+    players.reject! do |player|
+      bankrupt = (player.money == 0)
+      dealer.say "Sorry, #{player.name}. You don't have money anymore. Get out of here!" if bankrupt
+      bankrupt
     end
+
+    pause
   end
 
-  def make_choice(player)
-    choice = player.hit_or_stand
-    case choice
-    when 'h'
-      player.hand << deck.deal_a_card
-      'h'
-    when 's'
-      's'
-    end # case
-  end
-
-  def draw_table(hide_first_dealer_card)
+  def draw_table(hide_first_dealer_card = true)
     system "clear"
     puts "  Dealer"
-    puts "  hands: #{dealer.hand.show(hide_first_dealer_card)}"
+    if hide_first_dealer_card
+      puts "  hands: #{dealer.hand.show(true)}"
+    else
+      puts "  hands: #{dealer.hand.show(false)}  Total: #{dealer.hand.total_points}"
+    end
+    puts 
     players.each do |player|
-      puts 
-      puts "  Name: #{player.name} Money: $#{player.money} Bet: $#{player.bets}"
+      puts "  ----------------------"
+      puts "  Name: #{player.name}"
+      puts "  Money: $#{player.money}  Bet: $#{player.bets}"
+      puts
       puts "  Hands: #{player.hand.show}  Total: #{player.hand.total_points}"
+      puts
     end
   end
 
