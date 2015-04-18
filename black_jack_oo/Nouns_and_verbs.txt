@@ -3,8 +3,7 @@ Dealer
     hand (which is bunch of cards)
   VERBS
     Deal a card from the deck to himself or one of the players
-    Hit
-    Stand
+    (Though in real life, it is dealer's job. But we only needs deck to do so...)
     Decide hit or stand
     say something
 
@@ -25,9 +24,8 @@ Player
     hand (which is bunch of cards, each either hidden or shown)
     money
     bets on the table
+    name
   VERBS
-    hit
-    stand
     decide hit or stand
     add bets
     win bets
@@ -46,14 +44,12 @@ GameTable
     has players
     has a deck
   VERBS
+    set up table
+    reset table
+    start gaming
     new round
+    show table status
     join a player
 
-Game
-  NOUNS
-    has a gametable
-  VERBS
-    set a gametable
-    start a gametable
 
   
