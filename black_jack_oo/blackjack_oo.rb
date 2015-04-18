@@ -8,24 +8,33 @@ module Pauseable
 end
 
 module HasHand
-  def total_points
-    hand.total_points
+  def blackjack?
+    hand.size == 2 && total_points == 21 
   end
 
   def busted?
-    hand.busted?
+    total_points > 21
   end
 
-  def blackjack?
-    hand.blackjack?
+  def total_points
+    result = 0
+    aces = 0
+    hand.each do |card|
+      result += card.to_points
+      aces += 1 if card.to_points == 1
+    end
+    result += 10 if (aces != 0 && (result + 10 <= 21))
+    result 
   end
 
   def clear_hand
     hand.clear
   end
 
-  def show_hand(hide_first_card = false)
-    hand.show(hide_first_card)
+  def show_hand(hide_fisrt_card = false)
+    cards_strings = hand.map{ |card| card.to_s }
+    cards_strings[0] = "🂠 ??" if hide_fisrt_card
+    cards_strings.join(" | ")
   end
 
   def add_a_card(card)
@@ -47,7 +56,7 @@ class Player
       money = gets.chomp
     end until money.match /^\d+$/
 
-    @hand = Hand.new
+    @hand = []
     @bets = 0
     @money = money.to_i
     @name = name
@@ -59,7 +68,7 @@ class Player
   end
 
   def hit_or_stand
-    if hand.total_points == 21
+    if total_points == 21
       puts "You have a blackjack!"
       pause
       return 's'
@@ -98,7 +107,7 @@ class Dealer
   attr_accessor :hand
 
   def initialize
-    @hand = Hand.new
+    @hand = []
   end
 
   def type
@@ -108,7 +117,7 @@ class Dealer
   def hit_or_stand
     say "Let me think....."
     pause
-    if hand.total_points < 17
+    if total_points < 17
       say "I want to hit!"
       pause
       'h'
@@ -173,55 +182,6 @@ class Deck
 
   def reset!
     self.cards = new_deck
-  end
-end
-
-class Hand
-  attr_accessor :cards
-
-  def initialize
-    @cards = []
-  end
-
-  def add_a_card(card)
-    self.cards << card
-  end
-
-  def show(hide_fisrt_card = false)
-    cards_strings = cards.map{ |card| card.to_s }
-    cards_strings[0] = "🂠 ??" if hide_fisrt_card
-    cards_strings.join(" | ")
-  end
-
-  def clear
-    cards.clear
-  end
-
-  def <<(card)
-    add_a_card(card)
-  end
-
-  def blackjack?
-    cards.size == 2 && total_points == 21 
-  end
-
-  def busted?
-    total_points > 21
-  end
-
-  def total_points
-    result = 0
-    aces = 0
-    cards.each do |card|
-      result += card.to_points
-      aces += 1 if card.to_points == 1
-    end
-    result += 10 if (aces != 0 && (result + 10 <= 21))
-    result 
-  end
-
-  def [](num)
-    cards[num]
   end
 end
 
